@@ -87,6 +87,20 @@ export class SSEClient {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        // Check for token refresh header
+        const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
+        if (tokenRefreshHeader === 'refresh') {
+          if (this.options.onTokenRefreshRequired) {
+            await Promise.resolve(this.options.onTokenRefreshRequired());
+          } else {
+            // Default behavior: reload the page
+            if (typeof window !== 'undefined') {
+              window.location.reload();
+            }
+          }
+          return;
+        }
+
         if (!response.body) {
           throw new Error('No response body');
         }
