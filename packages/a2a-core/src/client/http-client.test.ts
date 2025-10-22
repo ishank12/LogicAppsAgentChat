@@ -444,7 +444,11 @@ describe('HttpClient', () => {
   describe('token refresh', () => {
     it('should call onTokenRefreshRequired when x-ms-aad-token-refresh-option header is refresh', async () => {
       const onTokenRefreshRequired = vi.fn();
-      client = new HttpClient('https://api.test.com', { type: 'none' }, { onTokenRefreshRequired });
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
@@ -473,7 +477,7 @@ describe('HttpClient', () => {
         writable: true,
       });
 
-      client = new HttpClient('https://api.test.com');
+      client = new HttpClient('https://test-agent.logic.azure.com');
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
@@ -498,7 +502,11 @@ describe('HttpClient', () => {
 
     it('should not trigger token refresh for other header values', async () => {
       const onTokenRefreshRequired = vi.fn();
-      client = new HttpClient('https://api.test.com', { type: 'none' }, { onTokenRefreshRequired });
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
@@ -516,7 +524,11 @@ describe('HttpClient', () => {
 
     it('should handle missing headers gracefully', async () => {
       const onTokenRefreshRequired = vi.fn();
-      client = new HttpClient('https://api.test.com', { type: 'none' }, { onTokenRefreshRequired });
+      client = new HttpClient(
+        'https://test-agent.logic.azure.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
 
       const mockFetch = vi.mocked(fetch);
       mockFetch.mockResolvedValueOnce({
@@ -524,6 +536,28 @@ describe('HttpClient', () => {
         headers: null,
         json: async () => ({ data: 'test' }),
       } as any);
+
+      const result = await client.get('/test');
+      expect(result).toEqual({ data: 'test' });
+      expect(onTokenRefreshRequired).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger token refresh for non-consumption agent URLs', async () => {
+      const onTokenRefreshRequired = vi.fn();
+      client = new HttpClient(
+        'https://api.example.com',
+        { type: 'none' },
+        { onTokenRefreshRequired }
+      );
+
+      const mockFetch = vi.mocked(fetch);
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'refresh',
+        }),
+        json: async () => ({ data: 'test' }),
+      } as Response);
 
       const result = await client.get('/test');
       expect(result).toEqual({ data: 'test' });

@@ -612,7 +612,8 @@ describe('SSEClient', () => {
       const onTokenRefreshRequired = vi.fn();
 
       vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
+        ok: false,
+        status: 401,
         headers: new Headers({
           'x-ms-aad-token-refresh-option': 'refresh',
         }),
@@ -624,7 +625,7 @@ describe('SSEClient', () => {
         },
       } as any);
 
-      client = new SSEClient('https://api.example.com/stream', {
+      client = new SSEClient('https://test-agent.logic.azure.com/stream', {
         method: 'POST',
         body: JSON.stringify({ test: 'data' }),
         onTokenRefreshRequired,
@@ -651,7 +652,8 @@ describe('SSEClient', () => {
       });
 
       vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
+        ok: false,
+        status: 401,
         headers: new Headers({
           'x-ms-aad-token-refresh-option': 'refresh',
         }),
@@ -663,7 +665,7 @@ describe('SSEClient', () => {
         },
       } as any);
 
-      client = new SSEClient('https://api.example.com/stream', {
+      client = new SSEClient('https://test-agent.logic.azure.com/stream', {
         method: 'POST',
         body: JSON.stringify({ test: 'data' }),
       });
@@ -702,6 +704,36 @@ describe('SSEClient', () => {
         method: 'POST',
         body: JSON.stringify({ test: 'data' }),
         onTokenRefreshRequired,
+      });
+
+      // Wait for the connection attempt
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(onTokenRefreshRequired).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger token refresh for non-consumption agent URLs', async () => {
+      const onTokenRefreshRequired = vi.fn();
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        headers: new Headers({
+          'x-ms-aad-token-refresh-option': 'refresh',
+        }),
+        body: {
+          getReader: () => ({
+            read: vi.fn().mockResolvedValue({ done: true }),
+            cancel: vi.fn(),
+          }),
+        },
+      } as any);
+
+      client = new SSEClient('https://api.example.com/stream', {
+        method: 'POST',
+        body: JSON.stringify({ test: 'data' }),
+        onTokenRefreshRequired,
+        onUnauthorized: vi.fn(), // Provide onUnauthorized to handle the 401
       });
 
       // Wait for the connection attempt

@@ -177,19 +177,21 @@ export class HttpClient {
       }
     );
 
-    // Check for token refresh header
-    const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
-    if (tokenRefreshHeader === 'refresh') {
-      if (this.options.onTokenRefreshRequired) {
-        await Promise.resolve(this.options.onTokenRefreshRequired());
-      } else {
-        // Default behavior: reload the page
-        if (typeof window !== 'undefined') {
-          window.location.reload();
+    // Check for token refresh header only for consumption agents
+    if (new URL(requestConfig.url).hostname.endsWith('.logic.azure.com')) {
+      const tokenRefreshHeader = response.headers?.get('x-ms-aad-token-refresh-option');
+      if (tokenRefreshHeader === 'refresh') {
+        if (this.options.onTokenRefreshRequired) {
+          await Promise.resolve(this.options.onTokenRefreshRequired());
+        } else {
+          // Default behavior: reload the page
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
         }
+        // Return early to prevent further processing
+        throw new Error('Token refresh required');
       }
-      // Return early to prevent further processing
-      throw new Error('Token refresh required');
     }
 
     // Parse response
